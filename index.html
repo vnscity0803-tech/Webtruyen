@@ -1097,7 +1097,10 @@
               <p id="detail-meta">Truyện đã xuất bản</p>
               <div class="stat-row">
                 <div>
-                  <i class="ph-fill ph-book-open" style="color: var(--primary)"></i>
+                  <i
+                    class="ph-fill ph-book-open"
+                    style="color: var(--primary)"
+                  ></i>
                   <span id="detail-chap-count">0 chương</span>
                 </div>
               </div>
@@ -1105,7 +1108,11 @@
           </div>
 
           <div class="detail-actions">
-            <button class="btn-primary" id="btn-read-first" onclick="readFirstChapter()">
+            <button
+              class="btn-primary"
+              id="btn-read-first"
+              onclick="readFirstChapter()"
+            >
               <i class="ph-fill ph-book-open"></i> Đọc từ đầu
             </button>
             <button class="btn-icon" style="width: 50px; height: 50px">
@@ -1161,7 +1168,8 @@
 
     <script>
       // ================= CẤU HÌNH GITHUB =================
-      const GITHUB_TOKEN = "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";
+      const GITHUB_TOKEN =
+        "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";
       const REPO_OWNER = "vnscity0803-tech";
       const REPO_NAME = "Webtruyen";
       const REPO_BRANCH = "main";
@@ -1286,7 +1294,12 @@
           if (!match) continue;
           const slug = match[1];
           if (!map[slug]) {
-            map[slug] = { slug, title: slugToTitle(slug), cover: null, chapters: {} };
+            map[slug] = {
+              slug,
+              title: slugToTitle(slug),
+              cover: null,
+              chapters: {},
+            };
           }
           const rest = match[2];
           if (!rest) continue;
@@ -1389,34 +1402,45 @@
 
       function openManga(slug) {
         const manga = catalog.find((m) => m.slug === slug);
-        if (!manga) return notify("info", "Không tìm thấy", "Truyện này chưa có trên kho.");
+        if (!manga)
+          return notify(
+            "info",
+            "Không tìm thấy",
+            "Truyện này chưa có trên kho.",
+          );
         currentManga = manga;
         const cover = coverOf(manga);
         document.getElementById("detail-banner").src = cover;
         document.getElementById("detail-cover").src = cover;
         document.getElementById("detail-title").textContent = manga.title;
-        document.getElementById("detail-meta").textContent = "Truyện đã xuất bản";
+        document.getElementById("detail-meta").textContent =
+          "Truyện đã xuất bản";
         document.getElementById("detail-chap-count").textContent =
           `${manga.chapters.length} chương`;
         document.getElementById("detail-chapter-heading").innerHTML =
           `<i class="ph-fill ph-list-dashes"></i> Cơ sở dữ liệu chương (${manga.chapters.length})`;
-        document.getElementById("detail-chapter-list").innerHTML = manga.chapters
-          .slice()
-          .reverse()
-          .map(
-            (ch) => `
+        document.getElementById("detail-chapter-list").innerHTML =
+          manga.chapters
+            .slice()
+            .reverse()
+            .map(
+              (ch) => `
           <div class="chapter-item" onclick="openChapter('${manga.slug}','${ch.id}')">
             <span class="chap-name">${ch.title}</span>
             <span class="chap-date">${ch.pages.length} trang</span>
           </div>`,
-          )
-          .join("");
+            )
+            .join("");
         navigateTo("view-detail");
       }
 
       function readFirstChapter() {
         if (!currentManga || !currentManga.chapters.length) {
-          return notify("info", "Chưa có chương", "Truyện này chưa có chương để đọc.");
+          return notify(
+            "info",
+            "Chưa có chương",
+            "Truyện này chưa có chương để đọc.",
+          );
         }
         openChapter(currentManga.slug, currentManga.chapters[0].id);
       }
@@ -1439,7 +1463,9 @@
         document.getElementById("reader-chap-indicator").innerHTML =
           `<i class="ph ph-list"></i> ${chapter.title}`;
         document.getElementById("reader-content").innerHTML = chapter.pages
-          .map((path) => `<img src="${rawUrl(path)}" class="reader-img" alt="">`)
+          .map(
+            (path) => `<img src="${rawUrl(path)}" class="reader-img" alt="">`,
+          )
           .join("");
         document.getElementById("view-reader").scrollTop = 0;
       }
@@ -1718,7 +1744,10 @@
           if (onProgress) onProgress(i + 1, files.length);
           const blob = await ghApi("/git/blobs", {
             method: "POST",
-            body: JSON.stringify({ content: files[i].base64, encoding: "base64" }),
+            body: JSON.stringify({
+              content: files[i].base64,
+              encoding: "base64",
+            }),
           });
           treeItems.push({
             path: files[i].path,
@@ -1730,11 +1759,18 @@
 
         const tree = await ghApi("/git/trees", {
           method: "POST",
-          body: JSON.stringify({ base_tree: parentCommit.tree.sha, tree: treeItems }),
+          body: JSON.stringify({
+            base_tree: parentCommit.tree.sha,
+            tree: treeItems,
+          }),
         });
         const commit = await ghApi("/git/commits", {
           method: "POST",
-          body: JSON.stringify({ message, tree: tree.sha, parents: [parentSha] }),
+          body: JSON.stringify({
+            message,
+            tree: tree.sha,
+            parents: [parentSha],
+          }),
         });
         await ghApi(`/git/refs/heads/${REPO_BRANCH}`, {
           method: "PATCH",
