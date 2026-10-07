@@ -14,6 +14,7 @@
       rel="stylesheet"
     />
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
       :root {
@@ -363,6 +364,11 @@
         color: var(--primary);
         margin-top: 4px;
         font-weight: 500;
+      }
+      .home-empty {
+        color: var(--text-muted);
+        font-size: 14px;
+        padding: 18px 0;
       }
 
       /* DETAIL VIEW */
@@ -838,30 +844,7 @@
             </div>
 
             <div class="carousel">
-              <div
-                class="hero-card"
-                style="
-                  background-image: url(&quot;https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=1200&q=80&quot;);
-                "
-                onclick="navigateTo('view-detail')"
-              >
-                <div class="hero-content">
-                  <div class="hero-tag">Nhiệm vụ cấp S</div>
-                  <h3>Cyberpunk: Tàn Dư</h3>
-                </div>
-              </div>
-              <div
-                class="hero-card"
-                style="
-                  background-image: url(&quot;https://images.unsplash.com/photo-1605806616949-1e87b487bc2a?auto=format&fit=crop&w=1200&q=80&quot;);
-                "
-                onclick="navigateTo('view-detail')"
-              >
-                <div class="hero-content">
-                  <div class="hero-tag">Hồ sơ mới</div>
-                  <h3>Kẻ Săn Ma Tộc</h3>
-                </div>
-              </div>
+              <div class="home-empty">Đang tải truyện đã xuất bản...</div>
             </div>
 
             <div class="section-header" style="margin-top: 40px">
@@ -870,28 +853,8 @@
               </div>
             </div>
 
-            <div class="grid-list">
-              <script>
-                const titles = [
-                  "PUBG: Vòng Bo Cuối",
-                  "Kẻ Kiến Tạo NUI",
-                  "Thành Phố Ngầm",
-                  "Đại Quản Gia Trùng Sinh",
-                  "Ma Sói Báo Thù",
-                  "Biệt Đội Ánh Sáng",
-                ];
-                for (let i = 0; i < 6; i++) {
-                  document.write(`
-                            <div class="manga-card" onclick="navigateTo('view-detail')">
-                                <div class="cover-wrapper">
-                                    <img src="https://images.unsplash.com/photo-1618519764620-7403abdbdfe9?auto=format&fit=crop&w=400&q=80" class="manga-cover">
-                                </div>
-                                <div class="manga-title">${titles[i]}</div>
-                                <div class="manga-chap">Chương ${100 + i}</div>
-                            </div>
-                        `);
-                }
-              </script>
+            <div class="grid-list" id="published-manga-list">
+              <div class="home-empty">Đang tải danh sách...</div>
             </div>
           </div>
         </main>
@@ -936,10 +899,8 @@
                 onchange="updatePath()"
               >
                 <option value="" disabled selected>
-                  -- Lựa chọn hệ thống --
+                  -- Đang tải danh sách truyện --
                 </option>
-                <option value="cyberpunk_tan_du">Cyberpunk: Tàn Dư</option>
-                <option value="ke_san_ma_toc">Kẻ Săn Ma Tộc</option>
               </select>
             </div>
 
@@ -1074,6 +1035,10 @@
               <i class="ph-fill ph-rocket-launch"></i> Tiến Hành Xuất Bản Lên
               GitHub
             </button>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px">
+              Dùng GitHub Fine-grained token chỉ cấp quyền Contents: Read and write
+              cho repository này.
+            </p>
           </div>
         </main>
       </div>
