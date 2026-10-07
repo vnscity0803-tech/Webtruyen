@@ -78,7 +78,8 @@
         }
         to {
           opacity: 1;
-          transform: none; /* Thay đổi dòng này thành none */
+          /* Đổi dòng transform cũ thành none để xóa bỏ ảnh hưởng sau khi chuyển cảnh */
+          transform: none;
         }
       }
 
@@ -1424,9 +1425,15 @@
             .reverse()
             .map(
               (ch) => `
-          <div class="chapter-item" onclick="openChapter('${manga.slug}','${ch.id}')">
-            <span class="chap-name">${ch.title}</span>
-            <span class="chap-date">${ch.pages.length} trang</span>
+          <div class="chapter-item" style="padding: 10px 16px;">
+            <div style="flex:1" onclick="openChapter('${manga.slug}','${ch.id}')">
+              <div class="chap-name">${ch.title}</div>
+              <div class="chap-date">${ch.pages.length} trang</div>
+            </div>
+            <button class="btn-icon" style="width: 35px; height: 35px; color: var(--accent); border-color: rgba(255,42,63,0.3);" 
+                    onclick="deleteGithubPath('truyen/${manga.slug}/${ch.id}/', '${ch.title}')">
+              <i class="ph ph-trash"></i>
+            </button>
           </div>`,
             )
             .join("");
@@ -1519,6 +1526,11 @@
         historyStack.push(targetId);
         const targetView = document.getElementById(targetId);
         targetView.classList.add("active", "slide-in");
+
+        // THÊM ĐOẠN NÀY: Xóa class slide-in sau 300ms (thời gian chạy xong animation)
+        setTimeout(() => {
+          targetView.classList.remove("slide-in");
+        }, 300);
 
         if (targetId === "view-reader") {
           targetView.scrollTop = 0;
@@ -1880,6 +1892,212 @@
         }
       }
 
+      // Hàm xóa thư mục hoặc file trên GitHub bằng Tree API
+      async function deleteGithubPath(pathPrefix, itemName) {
+        // Bật cảnh báo xác nhận
+        const confirm = await Swal.fire({
+          ...swalBase,
+          title: "Cảnh báo nguy hiểm!",
+          text: `Bạn sắp xóa vĩnh viễn [ ${itemName} ]. Hành động này không thể hoàn tác!`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Xóa vĩnh viễn",
+          cancelButtonText: "Hủy bỏ",
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        // Kiểm tra token
+        if (!GITHUB_TOKEN) {
+          GITHUB_TOKEN = prompt(
+            "Nhập Token GitHub của bạn để xác thực:",
+            localStorage.getItem("nexa_gh_token") || "",
+          );
+          if (!GITHUB_TOKEN)
+            return notify(
+              "error",
+              "Lỗi",
+              "Cần có Token để thực hiện lệnh xóa.",
+            );
+          localStorage.setItem("nexa_gh_token", GITHUB_TOKEN);
+        }
+
+        Swal.fire({
+          ...swalBase,
+          title: "Đang tiến hành xóa...",
+          text: "Vui lòng không đóng trình duyệt.",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        try {
+          // 1. Lấy cây dữ liệu hiện tại
+          const ref = await ghApi(`/git/ref/heads/${REPO_BRANCH}`);
+          const parentSha = ref.object.sha;
+          const parentCommit = await ghApi(`/git/commits/${parentSha}`);
+          const treeRes = await ghApi(
+            `/git/trees/${parentCommit.tree.sha}?recursive=1`,
+          );
+
+          // 2. Lọc ra các file thuộc chương/truyện cần xóa và gán sha = null để xóa
+          const treeItems = treeRes.tree
+            .filter(
+              (item) =>
+                item.type === "blob" && item.path.startsWith(pathPrefix),
+            )
+            .map((file) => ({
+              path: file.path,
+              mode: "100644",
+              type: "blob",
+              sha: null,
+            }));
+
+          if (treeItems.length === 0)
+            throw new Error("Không tìm thấy dữ liệu trên GitHub để xóa.");
+
+          // 3. Cập nhật cây dữ liệu mới
+          const newTree = await ghApi("/git/trees", {
+            method: "POST",
+            body: JSON.stringify({
+              base_tree: parentCommit.tree.sha,
+              tree: treeItems,
+            }),
+          });
+          const commit = await ghApi("/git/commits", {
+            method: "POST",
+            body: JSON.stringify({
+              message: `Hệ thống xóa: ${pathPrefix}`,
+              tree: newTree.sha,
+              parents: [parentSha],
+            }),
+          });
+          await ghApi(`/git/refs/heads/${REPO_BRANCH}`, {
+            method: "PATCH",
+            body: JSON.stringify({ sha: commit.sha }),
+          });
+
+          await notify(
+            "success",
+            "Hoàn tất",
+            `Đã xóa sạch dữ liệu của ${itemName}.`,
+          );
+
+          // Tải lại dữ liệu mới nhất
+          await loadCatalog();
+          goBack(); // Quay lại trang trước đó để tránh lỗi hiển thị
+        } catch (err) {
+          notify("error", "Lỗi khi xóa", err.message);
+        }
+      }
+      async function deleteGithubPath(pathPrefix, itemName) {
+        // Bật cảnh báo xác nhận
+        const confirm = await Swal.fire({
+          ...swalBase,
+          title: "Cảnh báo nguy hiểm!",
+          text: `Bạn sắp xóa vĩnh viễn [ ${itemName} ]. Hành động này không thể hoàn tác!`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Xóa vĩnh viễn",
+          cancelButtonText: "Hủy bỏ",
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        // Luôn hiện bảng hỏi token, điền sẵn token cũ nếu có để bạn dễ dàng sửa đổi
+        const tokenInput = prompt(
+          "Xác nhận Token GitHub (Quyền Repo/Contents) để cho phép xóa:",
+          GITHUB_TOKEN,
+        );
+
+        if (!tokenInput) {
+          return notify(
+            "error",
+            "Đã hủy",
+            "Bạn chưa nhập Token nên không thể xóa.",
+          );
+        }
+
+        // Lưu token mới vào bộ nhớ
+        GITHUB_TOKEN = tokenInput.trim();
+        localStorage.setItem("nexa_gh_token", GITHUB_TOKEN);
+
+        Swal.fire({
+          ...swalBase,
+          title: "Đang tiến hành xóa...",
+          text: "Vui lòng không đóng trình duyệt.",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        try {
+          const ref = await ghApi(`/git/ref/heads/${REPO_BRANCH}`);
+          const parentSha = ref.object.sha;
+          const parentCommit = await ghApi(`/git/commits/${parentSha}`);
+          const treeRes = await ghApi(
+            `/git/trees/${parentCommit.tree.sha}?recursive=1`,
+          );
+
+          const treeItems = treeRes.tree
+            .filter(
+              (item) =>
+                item.type === "blob" && item.path.startsWith(pathPrefix),
+            )
+            .map((file) => ({
+              path: file.path,
+              mode: "100644",
+              type: "blob",
+              sha: null,
+            }));
+
+          if (treeItems.length === 0)
+            throw new Error("Không tìm thấy dữ liệu trên GitHub để xóa.");
+
+          const newTree = await ghApi("/git/trees", {
+            method: "POST",
+            body: JSON.stringify({
+              base_tree: parentCommit.tree.sha,
+              tree: treeItems,
+            }),
+          });
+          const commit = await ghApi("/git/commits", {
+            method: "POST",
+            body: JSON.stringify({
+              message: `Hệ thống xóa: ${pathPrefix}`,
+              tree: newTree.sha,
+              parents: [parentSha],
+            }),
+          });
+          await ghApi(`/git/refs/heads/${REPO_BRANCH}`, {
+            method: "PATCH",
+            body: JSON.stringify({ sha: commit.sha }),
+          });
+
+          await notify(
+            "success",
+            "Hoàn tất",
+            `Đã xóa sạch dữ liệu của ${itemName}.`,
+          );
+
+          await loadCatalog();
+          goBack();
+        } catch (err) {
+          // Tự động xóa Token lỗi khỏi hệ thống nếu GitHub từ chối
+          if (
+            err.message.includes("không hợp lệ") ||
+            err.message.includes("bad credentials")
+          ) {
+            GITHUB_TOKEN = "";
+            localStorage.removeItem("nexa_gh_token");
+            notify(
+              "error",
+              "Token sai hoặc hết hạn",
+              "Token của bạn đã cũ hoặc điền sai. Vui lòng lấy lại Token mới trên GitHub và thử lại!",
+            );
+          } else {
+            notify("error", "Lỗi khi xóa", err.message);
+          }
+        }
+      }
       loadCatalog();
     </script>
   </body>
