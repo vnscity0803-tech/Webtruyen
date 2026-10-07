@@ -1,0 +1,1098 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>NexaManga - Tactical Edition</title>
+
+    <!-- Fonts & Icons -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+      :root {
+        --bg-base: #06070b;
+        --bg-surface: #10121a;
+        --bg-surface-hover: #181b26;
+        --primary: #00f0ff;
+        --primary-glow: rgba(0, 240, 255, 0.5);
+        --accent: #ff2a3f;
+        --accent-glow: rgba(255, 42, 63, 0.5);
+        --text-main: #e2e8f0;
+        --text-muted: #828b9c;
+        --glass-bg: rgba(16, 18, 26, 0.7);
+        --glass-border: rgba(0, 240, 255, 0.15);
+
+        --nav-size: 70px;
+        --header-height: 60px;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Be Vietnam Pro", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        background-color: var(--bg-base);
+        color: var(--text-main);
+        overscroll-behavior-y: none;
+        user-select: none;
+        background-image:
+          linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+        background-size: 30px 30px;
+      }
+
+      /* Utils & Animations */
+      .glass {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+
+      .fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+      .slide-in {
+        animation: slideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      /* App Container */
+      #app-container {
+        display: flex;
+        width: 100%;
+        min-height: 100vh;
+        position: relative;
+      }
+
+      .view-container {
+        position: relative;
+        flex: 1;
+        width: 100%;
+        height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-bottom: calc(var(--nav-size) + 20px);
+      }
+
+      .view {
+        display: none;
+      }
+      .view.active {
+        display: block;
+      }
+
+      /* Views Overlays (Detail & Reader) */
+      #view-detail {
+        z-index: 20;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: var(--bg-base);
+        min-height: 100vh;
+        padding-bottom: 0;
+      }
+      #view-reader {
+        z-index: 30;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: #000;
+        min-height: 100vh;
+        padding-bottom: 0;
+      }
+
+      /* --- Global Header --- */
+      .top-bar {
+        position: sticky;
+        top: 0;
+        width: 100%;
+        height: var(--header-height);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        z-index: 10;
+        border-bottom: 1px solid var(--glass-border);
+      }
+      .logo {
+        font-size: 20px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .logo i {
+        color: var(--primary);
+        font-size: 26px;
+        filter: drop-shadow(0 0 8px var(--primary-glow));
+      }
+
+      .btn-icon {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-main);
+        font-size: 20px;
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+      .btn-icon:hover {
+        background: var(--primary);
+        color: #000;
+        border-color: var(--primary);
+        box-shadow: 0 0 15px var(--primary-glow);
+      }
+
+      /* --- NAVIGATION (Mobile = Bottom, PC = Left Sidebar) --- */
+      #main-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: var(--nav-size);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        border-top: 1px solid var(--glass-border);
+        z-index: 90;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      #main-nav.hide {
+        transform: translateY(150%);
+      }
+
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        width: 70px;
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+      .nav-item i {
+        font-size: 24px;
+        transition: all 0.2s;
+      }
+      .nav-item:hover {
+        color: var(--text-main);
+      }
+      .nav-item.active {
+        color: var(--primary);
+      }
+      .nav-item.active i {
+        filter: drop-shadow(0 0 10px var(--primary-glow));
+        transform: translateY(-2px);
+      }
+
+      /* --- VIEW: HOME --- */
+      .content-wrap {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin: 30px 0 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding-bottom: 8px;
+      }
+      .section-title {
+        font-size: 18px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .section-title i {
+        color: var(--accent);
+        font-size: 22px;
+        filter: drop-shadow(0 0 10px var(--accent-glow));
+      }
+      .section-more {
+        font-size: 13px;
+        color: var(--primary);
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      /* Hero Carousel */
+      .carousel {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        padding-bottom: 15px;
+      }
+      .carousel::-webkit-scrollbar {
+        display: none;
+      }
+
+      .hero-card {
+        min-width: 85vw;
+        height: 220px;
+        scroll-snap-align: center;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 20px;
+        cursor: pointer;
+        transition: transform 0.3s;
+        clip-path: polygon(
+          0 0,
+          100% 0,
+          100% calc(100% - 20px),
+          calc(100% - 20px) 100%,
+          0 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .hero-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to top,
+          rgba(6, 7, 11, 1) 0%,
+          rgba(6, 7, 11, 0.2) 60%,
+          transparent 100%
+        );
+        z-index: 1;
+        pointer-events: none;
+      }
+      .hero-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary);
+      }
+      .hero-content {
+        position: relative;
+        z-index: 2;
+      }
+      .hero-tag {
+        background: var(--accent);
+        color: #fff;
+        padding: 4px 10px;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        width: fit-content;
+        margin-bottom: 8px;
+        clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        letter-spacing: 1px;
+      }
+      .hero-content h3 {
+        font-size: 20px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
+      }
+
+      /* Grid System */
+      .grid-list {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      }
+      .manga-card {
+        cursor: pointer;
+        position: relative;
+      }
+      .manga-card .cover-wrapper {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 2/3;
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s;
+      }
+      .manga-cover {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: var(--bg-surface);
+        transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+
+      .manga-card:hover .cover-wrapper {
+        border-color: var(--primary);
+        box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+      }
+      .manga-card:hover .manga-cover {
+        transform: scale(1.08);
+      }
+
+      .manga-title {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.4;
+        margin-top: 10px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .manga-chap {
+        font-size: 12px;
+        color: var(--primary);
+        margin-top: 4px;
+        font-weight: 500;
+      }
+
+      /* --- VIEW: DETAIL --- */
+      .detail-header {
+        position: absolute;
+        top: 0;
+        width: 100%;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        z-index: 25;
+      }
+
+      .detail-banner-wrap {
+        position: relative;
+        height: 350px;
+        width: 100%;
+        overflow: hidden;
+      }
+      .detail-banner {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: blur(8px) brightness(0.6);
+        transform: scale(1.1);
+      }
+      .detail-banner-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to top,
+          var(--bg-base) 0%,
+          transparent 100%
+        );
+      }
+
+      .detail-info {
+        position: relative;
+        padding: 0 20px;
+        margin-top: -120px;
+        display: flex;
+        gap: 20px;
+        z-index: 2;
+        align-items: flex-end;
+      }
+      .detail-info img {
+        width: 140px;
+        aspect-ratio: 2/3;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid var(--primary);
+        box-shadow:
+          0 10px 30px rgba(0, 0, 0, 0.8),
+          0 0 20px var(--primary-glow);
+      }
+
+      .detail-text h1 {
+        font-size: 24px;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        line-height: 1.2;
+      }
+      .detail-text p {
+        font-size: 13px;
+        color: var(--primary);
+        font-weight: 600;
+        margin-bottom: 12px;
+        letter-spacing: 1px;
+      }
+      .stat-row {
+        display: flex;
+        gap: 16px;
+        font-size: 13px;
+        color: var(--text-main);
+        font-weight: 500;
+      }
+      .stat-row div {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg-surface);
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .stat-row i {
+        color: var(--primary);
+        font-size: 16px;
+      }
+
+      .detail-actions {
+        padding: 24px 20px;
+        display: flex;
+        gap: 16px;
+      }
+      .btn-primary {
+        flex: 1;
+        background: var(--primary);
+        color: #000;
+        font-weight: 800;
+        font-size: 16px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border: none;
+        height: 50px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+        clip-path: polygon(
+          15px 0,
+          100% 0,
+          100% calc(100% - 15px),
+          calc(100% - 15px) 100%,
+          0 100%,
+          0 15px
+        );
+      }
+      .btn-primary:hover {
+        background: #fff;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+      }
+      .btn-primary:active {
+        transform: scale(0.97);
+      }
+
+      .chapter-section {
+        padding: 0 20px 40px;
+      }
+      .chapter-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .chapter-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        background: var(--bg-surface);
+        border: 1px solid var(--glass-border);
+        border-left: 4px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .chapter-item:hover {
+        background: var(--bg-surface-hover);
+        border-left-color: var(--primary);
+      }
+      .chap-name {
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .chap-date {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      /* --- VIEW: READER --- */
+      .reader-scroll {
+        height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        scroll-behavior: smooth;
+      }
+      .reader-img {
+        width: 100%;
+        display: block;
+        margin: 0 auto;
+        max-width: 900px;
+      }
+
+      .reader-ui {
+        position: fixed;
+        left: 0;
+        width: 100%;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+      }
+      .reader-header {
+        top: 0;
+        height: var(--header-height);
+        transform: translateY(-100%);
+        border-bottom: 1px solid var(--glass-border);
+        justify-content: space-between;
+      }
+      .reader-footer {
+        bottom: 0;
+        height: 80px;
+        transform: translateY(100%);
+        border-top: 1px solid var(--glass-border);
+        justify-content: center;
+        gap: 20px;
+        padding-bottom: 10px;
+      }
+
+      .reader-active-ui .reader-header {
+        transform: translateY(0);
+      }
+      .reader-active-ui .reader-footer {
+        transform: translateY(0);
+      }
+
+      .reader-title {
+        font-size: 15px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--primary);
+      }
+      .reader-chap-indicator {
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--primary);
+        padding: 8px 20px;
+        color: var(--primary);
+        background: rgba(0, 240, 255, 0.05);
+        clip-path: polygon(
+          10px 0,
+          100% 0,
+          100% calc(100% - 10px),
+          calc(100% - 10px) 100%,
+          0 100%,
+          0 10px
+        );
+        cursor: pointer;
+      }
+
+      /* --- STUDIO (Input Fields Tactical Style) --- */
+      .tactical-input {
+        width: 100%;
+        background: var(--bg-surface);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-main);
+        padding: 16px;
+        outline: none;
+        margin-bottom: 20px;
+        font-size: 15px;
+        font-weight: 500;
+        transition: all 0.3s;
+        border-left: 3px solid transparent;
+      }
+      .tactical-input:focus {
+        border-color: var(--glass-border);
+        border-left-color: var(--primary);
+        background: rgba(0, 240, 255, 0.02);
+      }
+
+      .upload-box {
+        background: rgba(255, 42, 63, 0.02);
+        border: 2px dashed var(--accent);
+        padding: 40px 20px;
+        text-align: center;
+        margin-top: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .upload-box:hover {
+        background: rgba(255, 42, 63, 0.08);
+      }
+      .upload-box i {
+        font-size: 48px;
+        color: var(--accent);
+        margin-bottom: 15px;
+        filter: drop-shadow(0 0 10px var(--accent-glow));
+      }
+
+      /* ================= RESPONSIVE ĐỈNH CAO CHO PC / LAPTOP ================= */
+      @media (min-width: 768px) {
+        :root {
+          --nav-size: 90px;
+        }
+
+        /* Chuyển Bottom Nav thành Left Sidebar */
+        #main-nav {
+          top: 0;
+          left: 0;
+          width: var(--nav-size);
+          height: 100vh;
+          flex-direction: column;
+          justify-content: center;
+          gap: 40px;
+          border-top: none;
+          border-right: 1px solid var(--glass-border);
+        }
+        #main-nav.hide {
+          transform: translateX(-150%);
+        } /* Slide out to left instead of down */
+
+        /* Đẩy nội dung chính sang phải */
+        .view-container {
+          margin-left: var(--nav-size);
+          padding-bottom: 0;
+        }
+
+        /* Tinh chỉnh UI cho màn hình to */
+        .hero-card {
+          min-width: 400px;
+          height: 300px;
+        }
+        .grid-list {
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 24px;
+        }
+
+        .detail-banner-wrap {
+          height: 450px;
+        }
+        .detail-info {
+          margin-top: -150px;
+          padding: 0 40px;
+          gap: 40px;
+        }
+        .detail-info img {
+          width: 220px;
+        }
+        .detail-text h1 {
+          font-size: 40px;
+        }
+        .detail-actions,
+        .chapter-section {
+          padding: 30px 40px;
+        }
+        .btn-primary {
+          max-width: 300px;
+        }
+
+        /* Cố định Header Layout */
+        .detail-header {
+          padding: 20px 40px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app-container">
+      <!-- NAVIGATION (Responsive: Bottom/Left) -->
+      <nav id="main-nav" class="glass">
+        <div class="nav-item active" onclick="switchTab('view-home', this)">
+          <i class="ph-fill ph-crosshair"></i> Trang chủ
+        </div>
+        <div class="nav-item" onclick="switchTab('view-studio', this)">
+          <i class="ph-fill ph-terminal-window"></i> Studio
+        </div>
+        <div class="nav-item"><i class="ph-fill ph-books"></i> Dữ liệu</div>
+        <div class="nav-item"><i class="ph-fill ph-user-focus"></i> Hồ sơ</div>
+      </nav>
+
+      <!-- CONTENT WRAPPER -->
+      <div class="view-container" id="main-scroll-area">
+        <!-- HEADER (Home/Studio) -->
+        <header id="main-header" class="top-bar glass">
+          <div class="logo"><i class="ph-fill ph-hexagon"></i> NexaManga</div>
+          <button class="btn-icon"><i class="ph ph-scan"></i></button>
+        </header>
+
+        <!-- VIEW: HOME -->
+        <main id="view-home" class="view active fade-in">
+          <div class="content-wrap">
+            <div class="section-header">
+              <div class="section-title">
+                <i class="ph-fill ph-fire"></i> Chỉ lệnh khẩn
+              </div>
+            </div>
+
+            <div class="carousel">
+              <div
+                class="hero-card"
+                style="
+                  background-image: url(&quot;https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=1200&q=80&quot;);
+                "
+                onclick="navigateTo('view-detail')"
+              >
+                <div class="hero-content">
+                  <div class="hero-tag">Nhiệm vụ cấp S</div>
+                  <h3>Cyberpunk: Tàn Dư</h3>
+                </div>
+              </div>
+              <div
+                class="hero-card"
+                style="
+                  background-image: url(&quot;https://images.unsplash.com/photo-1605806616949-1e87b487bc2a?auto=format&fit=crop&w=1200&q=80&quot;);
+                "
+                onclick="navigateTo('view-detail')"
+              >
+                <div class="hero-content">
+                  <div class="hero-tag">Hồ sơ mới</div>
+                  <h3>Kẻ Săn Ma Tộc</h3>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-header" style="margin-top: 40px">
+              <div class="section-title">
+                <i class="ph-fill ph-radar"></i> Cập nhật hệ thống
+              </div>
+              <div class="section-more">
+                Mở rộng <i class="ph ph-caret-right"></i>
+              </div>
+            </div>
+
+            <div class="grid-list">
+              <script>
+                const titles = [
+                  "PUBG: Vòng Bo Cuối",
+                  "Kẻ Kiến Tạo NUI",
+                  "Thành Phố Ngầm",
+                  "Đại Quản Gia Trùng Sinh",
+                  "Ma Sói Báo Thù",
+                  "Biệt Đội Ánh Sáng",
+                ];
+                for (let i = 0; i < 6; i++) {
+                  document.write(`
+                                <div class="manga-card" onclick="navigateTo('view-detail')">
+                                    <div class="cover-wrapper">
+                                        <img src="https://images.unsplash.com/photo-1618519764620-7403abdbdfe9?auto=format&fit=crop&w=400&q=80" class="manga-cover">
+                                    </div>
+                                    <div class="manga-title">${titles[i]}</div>
+                                    <div class="manga-chap">Chương ${100 + i}</div>
+                                </div>
+                            `);
+                }
+              </script>
+            </div>
+          </div>
+        </main>
+
+        <!-- VIEW: STUDIO -->
+        <main id="view-studio" class="view fade-in">
+          <div class="content-wrap" style="max-width: 800px">
+            <div class="section-header">
+              <div class="section-title">
+                <i class="ph-fill ph-terminal"></i> Bảng điều khiển tác giả
+              </div>
+            </div>
+
+            <div
+              style="
+                font-size: 13px;
+                color: var(--primary);
+                margin-bottom: 10px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+              "
+            >
+              Mã định danh truyện
+            </div>
+            <input
+              type="text"
+              class="tactical-input"
+              value="Cyberpunk: Tàn Dư"
+            />
+
+            <div
+              style="
+                font-size: 13px;
+                color: var(--primary);
+                margin-bottom: 10px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+              "
+            >
+              Số thứ tự chương
+            </div>
+            <input
+              type="number"
+              class="tactical-input"
+              placeholder="Ví dụ: 15"
+            />
+
+            <div class="upload-box">
+              <i class="ph-fill ph-file-arrow-up"></i>
+              <h4
+                style="
+                  font-size: 16px;
+                  font-weight: 700;
+                  color: #fff;
+                  text-transform: uppercase;
+                  margin-bottom: 6px;
+                "
+              >
+                Truyền tải dữ liệu ảnh
+              </h4>
+              <p style="font-size: 13px; color: var(--text-muted)">
+                Kéo thả hoặc nhấp để thiết lập kết nối (Hỗ trợ JPG, PNG, WEBP)
+              </p>
+            </div>
+
+            <button
+              class="btn-primary"
+              style="margin-top: 30px; width: 100%; max-width: 100%"
+            >
+              <i class="ph-fill ph-rocket-launch"></i> Kích hoạt xuất bản
+            </button>
+          </div>
+        </main>
+      </div>
+      <!-- /view-container -->
+
+      <!-- VIEW: DETAIL (Overlay) -->
+      <div id="view-detail" class="view">
+        <div style="height: 100vh; overflow-y: auto">
+          <header class="detail-header">
+            <button class="btn-icon glass" onclick="goBack()">
+              <i class="ph ph-arrow-left"></i>
+            </button>
+            <button class="btn-icon glass">
+              <i class="ph ph-share-network"></i>
+            </button>
+          </header>
+
+          <div class="detail-banner-wrap">
+            <img
+              src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=1200&q=80"
+              class="detail-banner"
+            />
+            <div class="detail-banner-overlay"></div>
+          </div>
+
+          <div class="detail-info">
+            <img
+              src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=400&q=80"
+            />
+            <div class="detail-text">
+              <h1>Cyberpunk: Tàn Dư</h1>
+              <p>Hành Động • Viễn Tưởng</p>
+              <div class="stat-row">
+                <div><i class="ph-fill ph-star"></i> 4.9/5.0</div>
+                <div><i class="ph-fill ph-eye"></i> 1.2M Lượt quét</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-actions">
+            <button class="btn-primary" onclick="navigateTo('view-reader')">
+              <i class="ph-fill ph-book-open"></i> Đọc Chương 1
+            </button>
+            <button class="btn-icon" style="width: 50px; height: 50px">
+              <i class="ph ph-bookmark-simple"></i>
+            </button>
+          </div>
+
+          <div class="chapter-section">
+            <div class="section-header" style="margin-top: 10px">
+              <div class="section-title">
+                <i class="ph-fill ph-list-dashes"></i> Cơ sở dữ liệu chương (25)
+              </div>
+              <i
+                class="ph ph-sort-descending"
+                style="font-size: 22px; cursor: pointer; color: var(--primary)"
+              ></i>
+            </div>
+            <div class="chapter-list">
+              <script>
+                for (let i = 25; i >= 1; i--) {
+                  document.write(`
+                                <div class="chapter-item" onclick="navigateTo('view-reader')">
+                                    <span class="chap-name">Chương ${i}: ${i === 25 ? "Kẻ Thù Cũ" : "Hệ Thống Sụp Đổ"}</span>
+                                    <span class="chap-date">10/10/2026</span>
+                                </div>
+                            `);
+                }
+              </script>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: READER (Overlay) -->
+      <div id="view-reader" class="view reader-scroll">
+        <div class="reader-ui reader-header glass">
+          <button
+            class="btn-icon"
+            onclick="goBack()"
+            style="border: none; background: transparent"
+          >
+            <i class="ph ph-arrow-left"></i>
+          </button>
+          <div class="reader-title">Cyberpunk - Ch. 25</div>
+          <button
+            class="btn-icon"
+            style="border: none; background: transparent"
+          >
+            <i class="ph ph-sliders-horizontal"></i>
+          </button>
+        </div>
+
+        <div id="reader-content" onclick="toggleReaderUI()">
+          <script>
+            for (let i = 1; i <= 4; i++) {
+              document.write(
+                `<img src="https://images.unsplash.com/photo-1605806616949-1e87b487bc2a?auto=format&fit=crop&w=1000&q=80" class="reader-img">`,
+              );
+            }
+          </script>
+        </div>
+
+        <div class="reader-ui reader-footer glass">
+          <button class="btn-icon"><i class="ph ph-skip-back"></i></button>
+          <div class="reader-chap-indicator">
+            <i class="ph ph-list"></i> Ch. 25
+          </div>
+          <button class="btn-icon"><i class="ph ph-skip-forward"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // --- NAVIGATION LOGIC ---
+      let historyStack = ["view-home"];
+      const nav = document.getElementById("main-nav");
+      const header = document.getElementById("main-header");
+
+      function navigateTo(targetId) {
+        if (historyStack[historyStack.length - 1] === targetId) return;
+
+        historyStack.push(targetId);
+        const targetView = document.getElementById(targetId);
+        targetView.classList.add("active", "slide-in");
+
+        if (targetId === "view-reader") {
+          targetView.scrollTop = 0;
+          targetView.classList.add("reader-active-ui");
+          setTimeout(
+            () => targetView.classList.remove("reader-active-ui"),
+            3000,
+          );
+        }
+
+        updateAppLayout(targetId);
+      }
+
+      function goBack() {
+        if (historyStack.length <= 1) return;
+
+        const currentViewId = historyStack.pop();
+        const prevViewId = historyStack[historyStack.length - 1];
+
+        const currentView = document.getElementById(currentViewId);
+        currentView.classList.remove("active", "slide-in");
+
+        updateAppLayout(prevViewId);
+      }
+
+      function switchTab(targetId, el) {
+        document
+          .querySelectorAll(".nav-item")
+          .forEach((n) => n.classList.remove("active"));
+        el.classList.add("active");
+
+        // Hide overlay views if any
+        document
+          .getElementById("view-detail")
+          .classList.remove("active", "slide-in");
+        document
+          .getElementById("view-reader")
+          .classList.remove("active", "slide-in");
+
+        // Switch main views
+        document.getElementById("view-home").classList.remove("active");
+        document.getElementById("view-studio").classList.remove("active");
+        document.getElementById(targetId).classList.add("active", "fade-in");
+
+        historyStack = [targetId];
+        document.getElementById("main-scroll-area").scrollTo({ top: 0 });
+        updateAppLayout(targetId);
+      }
+
+      function updateAppLayout(currentView) {
+        if (currentView === "view-detail" || currentView === "view-reader") {
+          nav.classList.add("hide"); // Trượt thanh nav ra ngoài (xuống dưới trên mobile, sang trái trên PC)
+        } else {
+          nav.classList.remove("hide");
+        }
+      }
+
+      // --- READER UI TOGGLE ---
+      function toggleReaderUI() {
+        document
+          .getElementById("view-reader")
+          .classList.toggle("reader-active-ui");
+      }
+
+      let lastScroll = 0;
+      document
+        .getElementById("view-reader")
+        .addEventListener("scroll", function () {
+          if (this.scrollTop > lastScroll + 15) {
+            this.classList.remove("reader-active-ui");
+          }
+          lastScroll = this.scrollTop;
+        });
+    </script>
+  </body>
+</html>
