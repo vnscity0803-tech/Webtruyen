@@ -1187,10 +1187,10 @@
 
       function githubHeaders(write) {
         const headers = { Accept: "application/vnd.github+json" };
-        if (GITHUB_TOKEN && GITHUB_TOKEN !== "ĐIỀN_TOKEN_CỦA_BẠN_VÀO_ĐÂY") {
+        if (write) {
           headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
+          headers["Content-Type"] = "application/json";
         }
-        if (write) headers["Content-Type"] = "application/json";
         return headers;
       }
 
@@ -1224,10 +1224,27 @@
         return manga.chapters[manga.chapters.length - 1].title;
       }
 
+      function translateGithubMessage(message) {
+        const text = String(message || "");
+        if (/bad credentials/i.test(text)) {
+          return "Token GitHub không hợp lệ hoặc đã hết hạn. Hãy tạo Personal Access Token mới (quyền Contents: Read and write) rồi dán vào GITHUB_TOKEN.";
+        }
+        if (/not found/i.test(text)) {
+          return "Không tìm thấy repo hoặc token không có quyền ghi. Kiểm tra REPO_OWNER/REPO_NAME và quyền token.";
+        }
+        if (/validation failed|too large/i.test(text)) {
+          return "File quá lớn hoặc không hợp lệ với GitHub Contents API. Hãy dùng ảnh nhỏ hơn 1MB.";
+        }
+        if (/rate limit/i.test(text)) {
+          return "GitHub đang giới hạn số lần gọi API. Thử lại sau vài phút.";
+        }
+        return text;
+      }
+
       async function readGithubError(response, fallback) {
         try {
           const data = await response.json();
-          return data.message || fallback;
+          return translateGithubMessage(data.message || fallback);
         } catch {
           return fallback;
         }
@@ -1654,7 +1671,7 @@
 
       async function uploadGithubFile(path, base64Content, message) {
         const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`;
-        const getRes = await fetch(url, { headers: githubHeaders(false) });
+        const getRes = await fetch(url, { headers: githubHeaders(true) });
         let sha;
         if (getRes.ok) {
           const existing = await getRes.json();
