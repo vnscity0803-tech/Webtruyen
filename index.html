@@ -1168,8 +1168,7 @@
 
     <script>
       // ================= CẤU HÌNH GITHUB =================
-      const GITHUB_TOKEN =
-        "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";
+      let GITHUB_TOKEN = localStorage.getItem("nexa_gh_token") || "";
       const REPO_OWNER = "vnscity0803-tech";
       const REPO_NAME = "Webtruyen";
       const REPO_BRANCH = "main";
@@ -1779,13 +1778,22 @@
       }
 
       async function submitData() {
-        if (!GITHUB_TOKEN || GITHUB_TOKEN === "ĐIỀN_TOKEN_CỦA_BẠN_VÀO_ĐÂY") {
+        const tokenInput = prompt(
+          "Nhập GitHub Personal Access Token (Quyền Contents: Read & Write):",
+          GITHUB_TOKEN,
+        );
+
+        if (!tokenInput) {
           return notify(
             "error",
-            "Thiếu token",
-            "Bạn chưa cấu hình GITHUB_TOKEN trong mã nguồn.",
+            "Đã hủy",
+            "Cần có Token để thực hiện xuất bản.",
           );
         }
+
+        // Cập nhật biến và lưu lại vào trình duyệt để điền sẵn cho lần sau
+        GITHUB_TOKEN = tokenInput.trim();
+        localStorage.setItem("nexa_gh_token", GITHUB_TOKEN);
 
         const gridItems = document.querySelectorAll(".preview-item");
         if (gridItems.length === 0) {
